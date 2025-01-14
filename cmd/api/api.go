@@ -4,13 +4,15 @@ import (
 	"net/http"
 	"encoding/json"
 	"log"
+	"fmt"
 
 	"github.com/gorilla/mux"
+	"github.com/UmairAhmedImran/gobank/internal/account"
 )
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
-	w.Header("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
 }
 
@@ -20,9 +22,9 @@ type ApiError struct {
 	Error string
 }
 
-func makeHTTPHandleFunc(f apifunc) http.HandlerFunc {
-	return func(w http.ResponsWriter, r *http.Request) {
-		if err := f(w, r), err != nil {
+func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := f(w, r); err != nil {
 			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		} 
 	}	
@@ -42,21 +44,37 @@ func NewAPIServer (listenAddr string) *APIServer {
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 
-	router.HandlFunc("/account", makeHTTPHanldeFunc(s.handleAccount))
+	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleGetAccount))
 
-	log.Println("JSON api server running on port, " s.listenAddr)
+	log.Println("JSON api server running on port:", s.listenAddr)
 
 	http.ListenAndServe(s.listenAddr, router)
 }
 
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	if r.Method == "GET" {
+		return s.handleGetAccount(w, r)
+	}
+
+	if r.Method == "POST" {
+		return s.handleCreateAccount(w, r)
+	}
+
+	if r.Method == "DELETE" {
+		return s.handleDeleteAccount(w, r)
+	}
+	return fmt.Errorf("method not allowed %s:", r.Method)
 }
 
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+	
+	id := mux.Vars(r)["id"]
 
-	return nil
+	fmt.Println(id)
+	
+	return WriteJSON(w, http.StatusOK, &account.Account{})
 }
 
 
@@ -73,3 +91,5 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
+
+
