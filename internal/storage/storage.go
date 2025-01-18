@@ -12,7 +12,7 @@ type Storage interface {
 	CreateAccount(*account.Account) error
 	DeleteAccount(int) error
 	UpdateAccount(*account.Account) error
-	GetAccountByID(int) (*account.Account, error)
+	GetAccountById(int) (*account.Account, error)
 }
 
 type PostgresStore struct {
@@ -36,3 +36,20 @@ func NewPostgresStore() (*PostgresStore, error) {
 	}, nil
 
 }
+
+
+func (s *PostgresStore) CreateAccount(*account.Account) error{
+	return nil
+}
+func (s *PostgresStore) DeleteAccount(id int) error{
+	return nil
+}
+func (s *PostgresStore) UpdateAccount(*account.Account) error{
+	return nil
+}
+func (s *PostgresStore) GetAccountById(id int) (*account.Account, error){
+	return nil, nil
+}
+
+
+
