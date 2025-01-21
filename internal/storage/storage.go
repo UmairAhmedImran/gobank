@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"database/sql"
 
 	_ "github.com/lib/pq"
@@ -12,6 +13,7 @@ type Storage interface {
 	CreateAccount(*account.Account) error
 	DeleteAccount(int) error
 	UpdateAccount(*account.Account) error
+	GetAccounts() ([]*account.Account, error)
 	GetAccountById(int) (*account.Account, error)
 }
 
@@ -41,13 +43,24 @@ func (s *PostgresStore) Init() error {
 	return s.createAccountTable()
 }
 
+
+func (s *PostgresStore) DropTable(tableName string) error {
+	query := fmt.Sprintf("DROP TABLE IF EXISTS %s", tableName)
+	_, err := s.db.Exec(query)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Table %s has been dropped.\n", tableName)
+	return nil
+}
+
 func (s *PostgresStore) createAccountTable() error {
 	query := `CREATE TABLE IF NOT EXISTS account(
 		id 		serial primary key,
 		first_name	varchar(50), 
 		last_name	varchar(50),
 		number		serial,
-		balnace		serial,
+		balance		serial,
 		created_at	timestamp
 	)`
 
@@ -55,7 +68,26 @@ func (s *PostgresStore) createAccountTable() error {
 	return err
 }
 
-func (s *PostgresStore) CreateAccount(*account.Account) error{
+func (s *PostgresStore) CreateAccount(acc *account.Account) error{
+	query :=`INSERT INTO account 
+		(first_name, last_name, number, balance, created_at)	
+		VALUES ($1, $2, $3, $4, $5)
+		`
+	resp, err := s.db.Exec(
+	query,
+	acc.FirstName,
+	acc.LastName,
+	acc.Number,
+	acc.Balance,
+	acc.CreatedAt,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%+v\n", resp)
+
 	return nil
 }
 func (s *PostgresStore) DeleteAccount(id int) error{
@@ -68,5 +100,32 @@ func (s *PostgresStore) GetAccountById(id int) (*account.Account, error){
 	return nil, nil
 }
 
+func (s *PostgresStore) GetAccounts() ([]*account.Account, error){
+	rows, err := s.db.Query("SELECT * FROM account")
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := []*account.Account{}
+	for rows.Next() {
+		account := new(account.Account)
+		err := rows.Scan(
+		&account.ID,
+		&account.FirstName,
+		&account.LastName,
+		&account.Number,
+		&account.Balance,
+		&account.CreatedAt)
+	
+		if err != nil {
+			return nil, err
+		}
+
+		accounts = append(accounts, account)
+	
+	}
+	
+	return accounts, nil
+}
 
 
